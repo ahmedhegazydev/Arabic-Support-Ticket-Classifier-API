@@ -3,14 +3,16 @@ import uuid
 from functools import lru_cache
 
 from app.models.classifier import get_classifier
-# from app.core.config import (
-#     CATEGORIES,
-#     HIGH_PRIORITY_KEYWORDS,
-#     MEDIUM_PRIORITY_KEYWORDS,
-#     CONFIDENCE_THRESHOLD,
-# )
 from app.core.settings import settings
 from app.core.logging_config import logger
+from app.core.metrics import (
+    REQUEST_COUNT,
+    REQUEST_FAILURE_COUNT,
+    CACHE_MISS_COUNT,
+    REQUEST_LATENCY_MS,
+    CACHE_LOOKUP_LATENCY_MS,
+    HUMAN_REVIEW_COUNT,
+)
 
 
 def normalize_text(text: str) -> str:
@@ -31,8 +33,10 @@ def predict_priority_by_rules(text: str) -> str:
     return "Low"
 
 
-@lru_cache(maxsize=256)
+@lru_cache(maxsize=settings.CACHE_SIZE)
 def cached_category_prediction(normalized_text: str):
+    CACHE_MISS_COUNT.inc()
+
     logger.info(
         "event=cache_miss action=run_model text_hash=%s text_length=%s",
         hash(normalized_text),
@@ -40,7 +44,11 @@ def cached_category_prediction(normalized_text: str):
     )
 
     classifier = get_classifier()
-    result = classifier(normalized_text, settings.CATEGORIES, multi_label=False)
+    result = classifier(
+        normalized_text,
+        settings.CATEGORIES,
+        multi_label=False,
+    )
 
     return {
         "category": result["labels"][0],
@@ -49,9 +57,11 @@ def cached_category_prediction(normalized_text: str):
 
 
 def classify_ticket(text: str):
-    start = time.time()
+    start = time.perf_counter()
     request_id = str(uuid.uuid4())
     normalized_text = normalize_text(text)
+
+    REQUEST_COUNT.inc()
 
     logger.info(
         "event=request_received request_id=%s text_length=%s",
@@ -60,26 +70,33 @@ def classify_ticket(text: str):
     )
 
     try:
-        before_cache = time.time()
+        before_cache = time.perf_counter()
         category_result = cached_category_prediction(normalized_text)
-        cache_lookup_ms = int((time.time() - before_cache) * 1000)
+        cache_lookup_ms = (time.perf_counter() - before_cache) * 1000
+        CACHE_LOOKUP_LATENCY_MS.observe(cache_lookup_ms)
 
         priority = predict_priority_by_rules(normalized_text)
 
         category_confidence = category_result["category_confidence"]
-        needs_human_review = category_confidence < settings.CONFIDENCE_THRESHOLD
+        needs_human_review = (
+            category_confidence < settings.CONFIDENCE_THRESHOLD
+        )
 
-        latency = int((time.time() - start) * 1000)
+        if needs_human_review:
+            HUMAN_REVIEW_COUNT.inc()
+
+        latency_ms = (time.perf_counter() - start) * 1000
+        REQUEST_LATENCY_MS.observe(latency_ms)
 
         logger.info(
-            "event=request_completed request_id=%s category=%s category_confidence=%.4f priority=%s needs_human_review=%s threshold=%.2f latency_ms=%s cache_lookup_ms=%s",
+            "event=request_completed request_id=%s category=%s category_confidence=%.4f priority=%s needs_human_review=%s threshold=%.2f latency_ms=%.3f cache_lookup_ms=%.3f",
             request_id,
             category_result["category"],
             category_confidence,
             priority,
             needs_human_review,
             settings.CONFIDENCE_THRESHOLD,
-            latency,
+            latency_ms,
             cache_lookup_ms,
         )
 
@@ -89,16 +106,18 @@ def classify_ticket(text: str):
             "category_confidence": category_confidence,
             "priority": priority,
             "needs_human_review": needs_human_review,
-            "latency_ms": latency,
+            "latency_ms": round(latency_ms, 3),
         }
 
     except Exception as e:
-        latency = int((time.time() - start) * 1000)
+        latency_ms = (time.perf_counter() - start) * 1000
+        REQUEST_FAILURE_COUNT.inc()
+        REQUEST_LATENCY_MS.observe(latency_ms)
 
         logger.exception(
-            "event=request_failed request_id=%s latency_ms=%s error=%s",
+            "event=request_failed request_id=%s latency_ms=%.3f error=%s",
             request_id,
-            latency,
+            latency_ms,
             str(e),
         )
         raise
