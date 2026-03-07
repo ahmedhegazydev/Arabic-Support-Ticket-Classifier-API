@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+transformers
+torch
+pydantic-settings
+python-dotenv
+prometheus-client
