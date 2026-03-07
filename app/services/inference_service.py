@@ -7,6 +7,7 @@ from app.core.config import (
     CATEGORIES,
     HIGH_PRIORITY_KEYWORDS,
     MEDIUM_PRIORITY_KEYWORDS,
+    CONFIDENCE_THRESHOLD,
 )
 from app.core.logging_config import logger
 
@@ -63,14 +64,20 @@ def classify_ticket(text: str):
         cache_lookup_ms = int((time.time() - before_cache) * 1000)
 
         priority = predict_priority_by_rules(normalized_text)
+
+        category_confidence = category_result["category_confidence"]
+        needs_human_review = category_confidence < CONFIDENCE_THRESHOLD
+
         latency = int((time.time() - start) * 1000)
 
         logger.info(
-            "event=request_completed request_id=%s category=%s category_confidence=%.4f priority=%s latency_ms=%s cache_lookup_ms=%s",
+            "event=request_completed request_id=%s category=%s category_confidence=%.4f priority=%s needs_human_review=%s threshold=%.2f latency_ms=%s cache_lookup_ms=%s",
             request_id,
             category_result["category"],
-            category_result["category_confidence"],
+            category_confidence,
             priority,
+            needs_human_review,
+            CONFIDENCE_THRESHOLD,
             latency,
             cache_lookup_ms,
         )
@@ -78,8 +85,9 @@ def classify_ticket(text: str):
         return {
             "request_id": request_id,
             "category": category_result["category"],
-            "category_confidence": category_result["category_confidence"],
+            "category_confidence": category_confidence,
             "priority": priority,
+            "needs_human_review": needs_human_review,
             "latency_ms": latency,
         }
 
