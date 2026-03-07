@@ -10,5 +10,5 @@ class TicketOut(BaseModel):
     category: str
     category_confidence: float
     priority: str
-    latency_ms: int
+    latency_ms: float
     needs_human_review: bool
