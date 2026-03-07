@@ -3,12 +3,13 @@ import uuid
 from functools import lru_cache
 
 from app.models.classifier import get_classifier
-from app.core.config import (
-    CATEGORIES,
-    HIGH_PRIORITY_KEYWORDS,
-    MEDIUM_PRIORITY_KEYWORDS,
-    CONFIDENCE_THRESHOLD,
-)
+# from app.core.config import (
+#     CATEGORIES,
+#     HIGH_PRIORITY_KEYWORDS,
+#     MEDIUM_PRIORITY_KEYWORDS,
+#     CONFIDENCE_THRESHOLD,
+# )
+from app.core.settings import settings
 from app.core.logging_config import logger
 
 
@@ -19,11 +20,11 @@ def normalize_text(text: str) -> str:
 def predict_priority_by_rules(text: str) -> str:
     normalized = normalize_text(text)
 
-    for keyword in HIGH_PRIORITY_KEYWORDS:
+    for keyword in settings.HIGH_PRIORITY_KEYWORDS:
         if keyword in normalized:
             return "High"
 
-    for keyword in MEDIUM_PRIORITY_KEYWORDS:
+    for keyword in settings.MEDIUM_PRIORITY_KEYWORDS:
         if keyword in normalized:
             return "Medium"
 
@@ -39,7 +40,7 @@ def cached_category_prediction(normalized_text: str):
     )
 
     classifier = get_classifier()
-    result = classifier(normalized_text, CATEGORIES, multi_label=False)
+    result = classifier(normalized_text, settings.CATEGORIES, multi_label=False)
 
     return {
         "category": result["labels"][0],
@@ -66,7 +67,7 @@ def classify_ticket(text: str):
         priority = predict_priority_by_rules(normalized_text)
 
         category_confidence = category_result["category_confidence"]
-        needs_human_review = category_confidence < CONFIDENCE_THRESHOLD
+        needs_human_review = category_confidence < settings.CONFIDENCE_THRESHOLD
 
         latency = int((time.time() - start) * 1000)
 
@@ -77,7 +78,7 @@ def classify_ticket(text: str):
             category_confidence,
             priority,
             needs_human_review,
-            CONFIDENCE_THRESHOLD,
+            settings.CONFIDENCE_THRESHOLD,
             latency,
             cache_lookup_ms,
         )
