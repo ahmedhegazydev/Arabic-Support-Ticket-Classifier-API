@@ -1,12 +1,13 @@
-from pydantic_settings import BaseSettings
 from typing import List
+from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 
 
 class Settings(BaseSettings):
 
     MODEL_NAME: str = "MoritzLaurer/multilingual-MiniLMv2-L6-mnli-xnli"
-
     CONFIDENCE_THRESHOLD: float = 0.45
+    CACHE_SIZE: int = 256
 
     CATEGORIES: List[str] = [
         "مشكلة تسجيل دخول",
@@ -39,10 +40,10 @@ class Settings(BaseSettings):
         "تأخير",
     ]
 
-    CACHE_SIZE: int = 256
-
-    class Config:
-        env_file = ".env"
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )
 
 
 settings = Settings()
