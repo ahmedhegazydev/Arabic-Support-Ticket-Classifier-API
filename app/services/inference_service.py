@@ -2,17 +2,20 @@ import time
 import uuid
 from functools import lru_cache
 
-from app.models.classifier import get_classifier
-from app.core.settings import settings
+from sqlalchemy.orm import Session
+
 from app.core.logging_config import logger
 from app.core.metrics import (
+    CACHE_LOOKUP_LATENCY_MS,
+    CACHE_MISS_COUNT,
+    HUMAN_REVIEW_COUNT,
     REQUEST_COUNT,
     REQUEST_FAILURE_COUNT,
-    CACHE_MISS_COUNT,
     REQUEST_LATENCY_MS,
-    CACHE_LOOKUP_LATENCY_MS,
-    HUMAN_REVIEW_COUNT,
 )
+from app.core.settings import settings
+from app.models.classifier import get_classifier
+from app.repositories.ticket_repository import create_ticket_prediction
 
 
 def normalize_text(text: str) -> str:
@@ -56,7 +59,7 @@ def cached_category_prediction(normalized_text: str):
     }
 
 
-def classify_ticket(text: str):
+def classify_ticket(text: str, db: Session):
     start = time.perf_counter()
     request_id = str(uuid.uuid4())
     normalized_text = normalize_text(text)
@@ -78,9 +81,7 @@ def classify_ticket(text: str):
         priority = predict_priority_by_rules(normalized_text)
 
         category_confidence = category_result["category_confidence"]
-        needs_human_review = (
-            category_confidence < settings.CONFIDENCE_THRESHOLD
-        )
+        needs_human_review = category_confidence < settings.CONFIDENCE_THRESHOLD
 
         if needs_human_review:
             HUMAN_REVIEW_COUNT.inc()
@@ -88,8 +89,31 @@ def classify_ticket(text: str):
         latency_ms = (time.perf_counter() - start) * 1000
         REQUEST_LATENCY_MS.observe(latency_ms)
 
+        result = {
+            "request_id": request_id,
+            "category": category_result["category"],
+            "category_confidence": category_confidence,
+            "priority": priority,
+            "needs_human_review": needs_human_review,
+            "latency_ms": round(latency_ms, 3),
+            "model_version": settings.MODEL_VERSION,
+        }
+
+        create_ticket_prediction(
+            db,
+            request_id=request_id,
+            original_text=text,
+            normalized_text=normalized_text,
+            predicted_category=category_result["category"],
+            confidence=category_confidence,
+            priority=priority,
+            needs_human_review=needs_human_review,
+            latency_ms=result["latency_ms"],
+            model_version=settings.MODEL_VERSION,
+        )
+
         logger.info(
-            "event=request_completed request_id=%s category=%s category_confidence=%.4f priority=%s needs_human_review=%s threshold=%.2f latency_ms=%.3f cache_lookup_ms=%.3f",
+            "event=request_completed request_id=%s category=%s category_confidence=%.4f priority=%s needs_human_review=%s threshold=%.2f latency_ms=%.3f cache_lookup_ms=%.3f model_version=%s",
             request_id,
             category_result["category"],
             category_confidence,
@@ -98,16 +122,10 @@ def classify_ticket(text: str):
             settings.CONFIDENCE_THRESHOLD,
             latency_ms,
             cache_lookup_ms,
+            settings.MODEL_VERSION,
         )
 
-        return {
-            "request_id": request_id,
-            "category": category_result["category"],
-            "category_confidence": category_confidence,
-            "priority": priority,
-            "needs_human_review": needs_human_review,
-            "latency_ms": round(latency_ms, 3),
-        }
+        return result
 
     except Exception as e:
         latency_ms = (time.perf_counter() - start) * 1000

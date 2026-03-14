@@ -12,3 +12,4 @@ class TicketOut(BaseModel):
     priority: str
     latency_ms: float
     needs_human_review: bool
+    model_version: str
