@@ -3,6 +3,8 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
+from app.repositories.review_repository import get_pending_reviews
+from app.schemas.review import ReviewQueueItemOut
 from app.schemas.ticket import TicketIn, TicketOut
 from app.services.inference_service import classify_ticket
 
@@ -34,3 +36,8 @@ def metrics():
 def classify(ticket: TicketIn, db: Session = Depends(get_db)):
     result = classify_ticket(ticket.text, db=db)
     return result
+
+@router.get("/review/queue", response_model=list[ReviewQueueItemOut])
+def review_queue(db: Session = Depends(get_db)):
+    reviews = get_pending_reviews(db)
+    return reviews

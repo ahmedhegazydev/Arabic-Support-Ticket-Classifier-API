@@ -1,6 +1,7 @@
 import time
 import uuid
 from functools import lru_cache
+from app.repositories.review_repository import create_pending_review
 
 from sqlalchemy.orm import Session
 
@@ -111,6 +112,12 @@ def classify_ticket(text: str, db: Session):
             latency_ms=result["latency_ms"],
             model_version=settings.MODEL_VERSION,
         )
+        if needs_human_review:
+            create_pending_review(
+                db,
+                request_id=request_id,
+            )
+
 
         logger.info(
             "event=request_completed request_id=%s category=%s category_confidence=%.4f priority=%s needs_human_review=%s threshold=%.2f latency_ms=%.3f cache_lookup_ms=%.3f model_version=%s",
