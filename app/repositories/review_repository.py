@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import TicketPrediction, TicketReview
 
-from app.repositories.ticket_repository import mark_prediction_as_reviewed
+from app.repositories.ticket_repository import mark_prediction_as_reviewed, get_prediction_by_request_id, apply_prediction_review_resolution
 
 def create_pending_review(db: Session, *, request_id: str) -> TicketReview:
     review = TicketReview(
@@ -64,6 +64,35 @@ def get_review_by_request_id(
     return db.scalar(stmt)
 
 
+# def resolve_review(
+#     db: Session,
+#     *,
+#     request_id: str,
+#     reviewed_category: str,
+#     reviewer_name: str,
+#     reviewer_notes: str | None = None,
+# ) -> Optional[TicketReview]:
+#     review = get_review_by_request_id(db, request_id=request_id)
+#     if review is None:
+#         return None
+
+#     review.status = "resolved"
+#     review.reviewed_category = reviewed_category
+#     review.reviewer_name = reviewer_name
+#     review.reviewer_notes = reviewer_notes
+#     review.reviewed_at = datetime.now(timezone.utc)
+
+#     db.commit()
+#     db.refresh(review)
+
+#     mark_prediction_as_reviewed(
+#         db,
+#         request_id=request_id,
+#         final_category=reviewed_category,
+#     )
+
+#     return review
+
 def resolve_review(
     db: Session,
     *,
@@ -76,23 +105,30 @@ def resolve_review(
     if review is None:
         return None
 
-    review.status = "resolved"
-    review.reviewed_category = reviewed_category
-    review.reviewer_name = reviewer_name
-    review.reviewer_notes = reviewer_notes
-    review.reviewed_at = datetime.now(timezone.utc)
+    prediction = get_prediction_by_request_id(db, request_id=request_id)
+    if prediction is None:
+        return None
 
-    db.commit()
-    db.refresh(review)
+    try:
+        review.status = "resolved"
+        review.reviewed_category = reviewed_category
+        review.reviewer_name = reviewer_name
+        review.reviewer_notes = reviewer_notes
+        review.reviewed_at = datetime.now(timezone.utc)
 
-    mark_prediction_as_reviewed(
-        db,
-        request_id=request_id,
-        final_category=reviewed_category,
-    )
+        apply_prediction_review_resolution(
+            prediction,
+            final_category=reviewed_category,
+        )
 
-    return review
+        db.commit()
+        db.refresh(review)
+        db.refresh(prediction)
+        return review
 
+    except Exception:
+        db.rollback()
+        raise
 
 def get_review_stats(db: Session) -> dict:
     total_stmt = select(func.count()).select_from(TicketReview)

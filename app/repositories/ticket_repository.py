@@ -73,9 +73,6 @@ def mark_prediction_as_reviewed(
     if prediction is None:
         return None
 
-    # prediction.final_category = final_category
-    # prediction.review_status = "resolved"
-    # prediction.reviewed_at = datetime.now(timezone.utc)
     apply_prediction_review_resolution(
         prediction,
         final_category=final_category,
