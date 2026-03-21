@@ -23,3 +23,8 @@ class ReviewResolutionOut(BaseModel):
     reviewer_notes: str | None
     created_at: datetime
     reviewed_at: datetime | None
+    
+class ReviewStatsOut(BaseModel):
+    total: int
+    pending: int
+    resolved: int

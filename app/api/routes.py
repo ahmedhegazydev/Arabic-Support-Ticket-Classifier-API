@@ -6,16 +6,19 @@ from app.db.session import SessionLocal
 from app.repositories.review_repository import (
     get_pending_reviews,
     resolve_review,
+    get_review_stats,
 )
-from app.schemas.review import ReviewQueueItemOut
 from app.schemas.ticket import TicketIn, TicketOut
-from app.services.inference_service import classify_ticket
-
 from app.schemas.review import (
     ReviewQueueItemOut,
     ReviewResolutionIn,
     ReviewResolutionOut,
+    ReviewStatsOut
 )
+
+from app.services.inference_service import classify_ticket
+
+
 
 
 router = APIRouter()
@@ -70,3 +73,8 @@ def resolve_review_endpoint(
         raise HTTPException(status_code=404, detail="Review item not found")
 
     return review
+
+@router.get("/review/stats", response_model=ReviewStatsOut)
+def review_stats(db: Session = Depends(get_db)):
+    stats = get_review_stats(db)
+    return stats
