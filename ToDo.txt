@@ -1,0 +1,23 @@
+عاجل لا أستطيع الدخول إلى الحساب
+مشكلة تسجيل دخول
+354d3022-ff31-4b1d-abd5-e6d4befd63dd
+
+{
+  "reviewed_category": "مشكلة تسجيل دخول",
+  "reviewer_name": "Ahmed",
+  "reviewer_notes": "Confirmed after manual check"
+}
+
+[
+  {
+    "request_id": "032ca31b-ecd7-49c2-9513-2b25c4deabfc",
+    "status": "pending",
+    "created_at": "2026-03-20T21:37:38.747826+02:00",
+    "original_text": "عاجل لا أستطيع الدخول إلى الحساب",
+    "predicted_category": "مشكلة تسجيل دخول",
+    "confidence": 0.2799033224582672,
+    "priority": "High",
+    "needs_human_review": true,
+    "model_version": "v1.0.0"
+  }
+]

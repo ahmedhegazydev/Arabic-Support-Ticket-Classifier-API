@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import TicketPrediction, TicketReview
 
+from app.repositories.ticket_repository import mark_prediction_as_reviewed
 
 def create_pending_review(db: Session, *, request_id: str) -> TicketReview:
     review = TicketReview(
@@ -83,6 +84,13 @@ def resolve_review(
 
     db.commit()
     db.refresh(review)
+
+    mark_prediction_as_reviewed(
+        db,
+        request_id=request_id,
+        final_category=reviewed_category,
+    )
+
     return review
 
 
@@ -100,3 +108,4 @@ def get_review_stats(db: Session) -> dict:
         "pending": pending,
         "resolved": resolved,
     }
+

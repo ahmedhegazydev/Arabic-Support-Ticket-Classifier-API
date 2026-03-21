@@ -25,6 +25,13 @@ class TicketPrediction(Base):
         nullable=False,
     )
 
+    final_category: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    review_status: Mapped[str] = mapped_column(String(20), nullable=False, default="not_needed")
+    reviewed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
 
 class TicketReview(Base):
     __tablename__ = "ticket_reviews"
