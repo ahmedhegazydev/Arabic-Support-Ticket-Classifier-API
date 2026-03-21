@@ -5,12 +5,14 @@ from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.repositories.review_repository import (
     get_pending_reviews,
+    get_pending_reviews_with_predictions, 
     resolve_review,
     get_review_stats,
 )
 from app.schemas.ticket import TicketIn, TicketOut
 from app.schemas.review import (
     ReviewQueueItemOut,
+    ReviewQueueDetailedItemOut, 
     ReviewResolutionIn,
     ReviewResolutionOut,
     ReviewStatsOut
@@ -50,10 +52,29 @@ def classify(ticket: TicketIn, db: Session = Depends(get_db)):
     result = classify_ticket(ticket.text, db=db)
     return result
 
-@router.get("/review/queue", response_model=list[ReviewQueueItemOut])
+# @router.get("/review/queue", response_model=list[ReviewQueueItemOut])
+# def review_queue(db: Session = Depends(get_db)):
+#     reviews = get_pending_reviews(db)
+#     return reviews
+
+@router.get("/review/queue", response_model=list[ReviewQueueDetailedItemOut])
 def review_queue(db: Session = Depends(get_db)):
-    reviews = get_pending_reviews(db)
-    return reviews
+    rows = get_pending_reviews_with_predictions(db)
+
+    return [
+        ReviewQueueDetailedItemOut(
+            request_id=review.request_id,
+            status=review.status,
+            created_at=review.created_at,
+            original_text=prediction.original_text,
+            predicted_category=prediction.predicted_category,
+            confidence=prediction.confidence,
+            priority=prediction.priority,
+            needs_human_review=prediction.needs_human_review,
+            model_version=prediction.model_version,
+        )
+        for review, prediction in rows
+    ]
 
 @router.post("/review/{request_id}/resolve", response_model=ReviewResolutionOut)
 def resolve_review_endpoint(

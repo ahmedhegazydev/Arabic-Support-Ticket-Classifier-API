@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.db.models import TicketReview
+from app.db.models import TicketPrediction, TicketReview
 
 
 def create_pending_review(db: Session, *, request_id: str) -> TicketReview:
@@ -32,6 +32,26 @@ def get_pending_reviews(
         .limit(limit)
     )
     return list(db.scalars(stmt).all())
+
+
+def get_pending_reviews_with_predictions(
+    db: Session,
+    *,
+    limit: int = 50,
+    offset: int = 0,
+):
+    stmt = (
+        select(TicketReview, TicketPrediction)
+        .join(
+            TicketPrediction,
+            TicketReview.request_id == TicketPrediction.request_id,
+        )
+        .where(TicketReview.status == "pending")
+        .order_by(TicketReview.created_at.asc())
+        .offset(offset)
+        .limit(limit)
+    )
+    return db.execute(stmt).all()
 
 
 def get_review_by_request_id(
