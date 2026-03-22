@@ -81,3 +81,19 @@ def mark_prediction_as_reviewed(
     db.commit()
     db.refresh(prediction)
     return prediction
+
+
+def get_finalized_predictions(
+    db: Session,
+    *,
+    limit: int = 100,
+    offset: int = 0,
+) -> list[TicketPrediction]:
+    stmt = (
+        select(TicketPrediction)
+        .where(TicketPrediction.final_category.is_not(None))
+        .order_by(TicketPrediction.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    return list(db.scalars(stmt).all())

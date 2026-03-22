@@ -20,6 +20,8 @@ from app.schemas.review import (
 
 from app.services.inference_service import classify_ticket
 
+from app.repositories.ticket_repository import get_finalized_predictions
+from app.schemas.evaluation import FinalizedPredictionOut
 
 
 
@@ -99,3 +101,13 @@ def resolve_review_endpoint(
 def review_stats(db: Session = Depends(get_db)):
     stats = get_review_stats(db)
     return stats
+
+
+@router.get("/evaluation/reviewed-dataset", response_model=list[FinalizedPredictionOut])
+def reviewed_dataset(
+    limit: int = 100,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+):
+    rows = get_finalized_predictions(db, limit=limit, offset=offset)
+    return rows
