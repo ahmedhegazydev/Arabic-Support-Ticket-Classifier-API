@@ -15,3 +15,10 @@ class FinalizedPredictionOut(BaseModel):
     model_version: str
     created_at: datetime
     reviewed_at: datetime | None
+
+
+class EvaluationMetricsOut(BaseModel):
+    total_finalized: int
+    matched_predictions: int
+    corrected_predictions: int
+    agreement_rate: float

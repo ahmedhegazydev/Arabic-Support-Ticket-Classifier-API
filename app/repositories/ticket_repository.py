@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import TicketPrediction
@@ -97,3 +97,42 @@ def get_finalized_predictions(
         .limit(limit)
     )
     return list(db.scalars(stmt).all())
+
+
+def get_evaluation_metrics(db: Session) -> dict:
+    total_stmt = (
+        select(func.count())
+        .select_from(TicketPrediction)
+        .where(TicketPrediction.final_category.is_not(None))
+    )
+
+    matched_stmt = (
+        select(func.count())
+        .select_from(TicketPrediction)
+        .where(TicketPrediction.final_category.is_not(None))
+        .where(TicketPrediction.predicted_category == TicketPrediction.final_category)
+    )
+
+    corrected_stmt = (
+        select(func.count())
+        .select_from(TicketPrediction)
+        .where(TicketPrediction.final_category.is_not(None))
+        .where(TicketPrediction.predicted_category != TicketPrediction.final_category)
+    )
+
+    total_finalized = db.scalar(total_stmt) or 0
+    matched_predictions = db.scalar(matched_stmt) or 0
+    corrected_predictions = db.scalar(corrected_stmt) or 0
+
+    agreement_rate = (
+        matched_predictions / total_finalized
+        if total_finalized > 0
+        else 0.0
+    )
+
+    return {
+        "total_finalized": total_finalized,
+        "matched_predictions": matched_predictions,
+        "corrected_predictions": corrected_predictions,
+        "agreement_rate": round(agreement_rate, 4),
+    }

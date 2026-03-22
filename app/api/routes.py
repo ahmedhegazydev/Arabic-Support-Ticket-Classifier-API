@@ -23,6 +23,14 @@ from app.services.inference_service import classify_ticket
 from app.repositories.ticket_repository import get_finalized_predictions
 from app.schemas.evaluation import FinalizedPredictionOut
 
+from app.repositories.ticket_repository import (
+    get_evaluation_metrics,
+    get_finalized_predictions,
+)
+from app.schemas.evaluation import (
+    EvaluationMetricsOut,
+    FinalizedPredictionOut,
+)
 
 
 router = APIRouter()
@@ -111,3 +119,8 @@ def reviewed_dataset(
 ):
     rows = get_finalized_predictions(db, limit=limit, offset=offset)
     return rows
+
+@router.get("/evaluation/metrics", response_model=EvaluationMetricsOut)
+def evaluation_metrics(db: Session = Depends(get_db)):
+    return get_evaluation_metrics(db)
+
