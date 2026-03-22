@@ -20,16 +20,15 @@ from app.schemas.review import (
 
 from app.services.inference_service import classify_ticket
 
-from app.repositories.ticket_repository import get_finalized_predictions
-from app.schemas.evaluation import FinalizedPredictionOut
+from app.repositories.ticket_repository import (get_finalized_predictions, 
+                                                get_evaluation_metrics,  
+                                                get_evaluation_by_category
+                                                )
 
-from app.repositories.ticket_repository import (
-    get_evaluation_metrics,
-    get_finalized_predictions,
-)
 from app.schemas.evaluation import (
     EvaluationMetricsOut,
     FinalizedPredictionOut,
+    CategoryEvaluationOut
 )
 
 
@@ -124,3 +123,7 @@ def reviewed_dataset(
 def evaluation_metrics(db: Session = Depends(get_db)):
     return get_evaluation_metrics(db)
 
+
+@router.get("/evaluation/by-category", response_model=list[CategoryEvaluationOut])
+def evaluation_by_category(db: Session = Depends(get_db)):
+    return get_evaluation_by_category(db)

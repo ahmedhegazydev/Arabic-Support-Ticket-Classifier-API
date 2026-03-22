@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import func, select
+from sqlalchemy import Integer, func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import TicketPrediction
@@ -136,3 +136,46 @@ def get_evaluation_metrics(db: Session) -> dict:
         "corrected_predictions": corrected_predictions,
         "agreement_rate": round(agreement_rate, 4),
     }
+
+def get_evaluation_by_category(db: Session) -> list[dict]:
+    stmt = (
+        select(
+            TicketPrediction.predicted_category.label("predicted_category"),
+            func.count().label("total_predictions"),
+            func.sum(
+                (TicketPrediction.predicted_category == TicketPrediction.final_category).cast(Integer)
+            ).label("matched_predictions"),
+            func.sum(
+                (TicketPrediction.predicted_category != TicketPrediction.final_category).cast(Integer)
+            ).label("corrected_predictions"),
+        )
+        .where(TicketPrediction.final_category.is_not(None))
+        .group_by(TicketPrediction.predicted_category)
+        .order_by(func.count().desc())
+    )
+
+    rows = db.execute(stmt).all()
+
+    results = []
+    for row in rows:
+        total_predictions = row.total_predictions or 0
+        matched_predictions = row.matched_predictions or 0
+        corrected_predictions = row.corrected_predictions or 0
+
+        agreement_rate = (
+            matched_predictions / total_predictions
+            if total_predictions > 0
+            else 0.0
+        )
+
+        results.append(
+            {
+                "predicted_category": row.predicted_category,
+                "total_predictions": total_predictions,
+                "matched_predictions": matched_predictions,
+                "corrected_predictions": corrected_predictions,
+                "agreement_rate": round(agreement_rate, 4),
+            }
+        )
+
+    return results

@@ -22,3 +22,10 @@ class EvaluationMetricsOut(BaseModel):
     matched_predictions: int
     corrected_predictions: int
     agreement_rate: float
+
+class CategoryEvaluationOut(BaseModel):
+    predicted_category: str
+    total_predictions: int
+    matched_predictions: int
+    corrected_predictions: int
+    agreement_rate: float
