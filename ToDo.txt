@@ -21,3 +21,34 @@
     "model_version": "v1.0.0"
   }
 ]
+
+insert into ticket_predictions (
+    request_id,
+    original_text,
+    normalized_text,
+    predicted_category,
+    final_category,
+    confidence,
+    priority,
+    needs_human_review,
+    latency_ms,
+    model_version,
+    review_status,
+    reviewed_at
+)
+values
+('test-001', 'أريد استرداد المبلغ المدفوع', 'اريد استرداد المبلغ المدفوع', 'billing', 'refund', 0.78, 'medium', true, 145.2, 'v1', 'reviewed', now()),
+('test-002', 'تم خصم المبلغ وأريد استرجاعه', 'تم خصم المبلغ واريد استرجاعه', 'billing', 'refund', 0.81, 'high', true, 132.7, 'v1', 'reviewed', now()),
+('test-003', 'أريد إلغاء الطلب واسترداد المال', 'اريد الغاء الطلب واسترداد المال', 'billing', 'refund', 0.69, 'high', true, 151.9, 'v1', 'reviewed', now()),
+
+('test-004', 'لا أستطيع الدخول إلى حسابي', 'لا استطيع الدخول الى حسابي', 'login_issue', 'account_access', 0.74, 'high', true, 121.4, 'v1', 'reviewed', now()),
+('test-005', 'الحساب مقفل بعد عدة محاولات', 'الحساب مقفل بعد عدة محاولات', 'login_issue', 'account_access', 0.72, 'high', true, 127.8, 'v1', 'reviewed', now()),
+('test-006', 'نسيت كلمة المرور ولا يمكنني الوصول للحساب', 'نسيت كلمة المرور ولا يمكنني الوصول للحساب', 'login_issue', 'account_access', 0.76, 'medium', true, 140.5, 'v1', 'reviewed', now()),
+
+('test-007', 'الخدمة لا تعمل بعد تجديد الاشتراك', 'الخدمة لا تعمل بعد تجديد الاشتراك', 'technical_support', 'billing', 0.65, 'medium', true, 166.1, 'v1', 'reviewed', now()),
+('test-008', 'تم الدفع لكن الباقة لم تتفعل', 'تم الدفع لكن الباقة لم تتفعل', 'technical_support', 'billing', 0.71, 'high', true, 158.3, 'v1', 'reviewed', now()),
+
+('test-009', 'أريد تحديث بيانات الدفع', 'اريد تحديث بيانات الدفع', 'billing', 'billing', 0.88, 'low', false, 98.6, 'v1', 'reviewed', now()),
+('test-010', 'التطبيق ينهار عند فتح الصفحة', 'التطبيق ينهار عند فتح الصفحة', 'technical_support', 'technical_support', 0.91, 'high', false, 110.2, 'v1', 'reviewed', now()),
+('test-011', 'لا أستطيع تسجيل الدخول', 'لا استطيع تسجيل الدخول', 'login_issue', 'login_issue', 0.84, 'high', false, 104.7, 'v1', 'reviewed', now()),
+('test-012', 'أريد استرجاع المبلغ بسبب إلغاء الطلب', 'اريد استرجاع المبلغ بسبب الغاء الطلب', 'refund', 'refund', 0.89, 'medium', false, 115.9, 'v1', 'reviewed', now());

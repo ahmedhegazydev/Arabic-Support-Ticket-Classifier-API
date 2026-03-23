@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import Integer, func, select
+from sqlalchemy import Integer, func, select, desc
 from sqlalchemy.orm import Session
 
 from app.db.models import TicketPrediction
@@ -179,3 +179,70 @@ def get_evaluation_by_category(db: Session) -> list[dict]:
         )
 
     return results
+
+def get_confusion_pairs(db: Session, limit: int = 20):
+    stmt = (
+        select(
+            TicketPrediction.predicted_category.label("predicted_category"),
+            TicketPrediction.final_category.label("final_category"),
+            func.count().label("count"),
+        )
+        .where(TicketPrediction.final_category.is_not(None))
+        .where(TicketPrediction.predicted_category != TicketPrediction.final_category)
+        .group_by(
+            TicketPrediction.predicted_category,
+            TicketPrediction.final_category,
+        )
+        .order_by(desc("count"))
+        .limit(limit)
+    )
+
+    rows = db.execute(stmt).all()
+
+    return [
+        {
+            "predicted_category": row.predicted_category,
+            "final_category": row.final_category,
+            "count": row.count,
+        }
+        for row in rows
+    ]
+
+
+def get_confusion_pair_examples(
+    db: Session,
+    predicted_category: str,
+    final_category: str,
+    limit: int = 20,
+):
+    stmt = (
+        select(
+            TicketPrediction.request_id,
+            TicketPrediction.original_text,
+            TicketPrediction.predicted_category,
+            TicketPrediction.final_category,
+            TicketPrediction.confidence,
+            TicketPrediction.review_status,
+            TicketPrediction.reviewed_at,
+        )
+        .where(TicketPrediction.final_category.is_not(None))
+        .where(TicketPrediction.predicted_category == predicted_category)
+        .where(TicketPrediction.final_category == final_category)
+        .order_by(TicketPrediction.reviewed_at.desc(), TicketPrediction.created_at.desc())
+        .limit(limit)
+    )
+
+    rows = db.execute(stmt).all()
+
+    return [
+        {
+            "request_id": row.request_id,
+            "original_text": row.original_text,
+            "predicted_category": row.predicted_category,
+            "final_category": row.final_category,
+            "confidence": row.confidence,
+            "review_status": row.review_status,
+            "reviewed_at": row.reviewed_at,
+        }
+        for row in rows
+    ]

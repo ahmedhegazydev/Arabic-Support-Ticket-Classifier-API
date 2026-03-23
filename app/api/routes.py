@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Query
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy.orm import Session
 
@@ -8,6 +8,7 @@ from app.repositories.review_repository import (
     get_pending_reviews_with_predictions, 
     resolve_review,
     get_review_stats,
+    
 )
 from app.schemas.ticket import TicketIn, TicketOut
 from app.schemas.review import (
@@ -17,13 +18,20 @@ from app.schemas.review import (
     ReviewResolutionOut,
     ReviewStatsOut
 )
+from app.schemas.confusion import (
+    ConfusionPairItem,
+    ConfusionPairExampleItem,
+)
 
 from app.services.inference_service import classify_ticket
 
-from app.repositories.ticket_repository import (get_finalized_predictions, 
-                                                get_evaluation_metrics,  
-                                                get_evaluation_by_category
-                                                )
+from app.repositories.ticket_repository import (
+    get_finalized_predictions,
+    get_evaluation_metrics,
+    get_evaluation_by_category,
+    get_confusion_pairs,
+     get_confusion_pair_examples,
+)
 
 from app.schemas.evaluation import (
     EvaluationMetricsOut,
@@ -127,3 +135,10 @@ def evaluation_metrics(db: Session = Depends(get_db)):
 @router.get("/evaluation/by-category", response_model=list[CategoryEvaluationOut])
 def evaluation_by_category(db: Session = Depends(get_db)):
     return get_evaluation_by_category(db)
+
+@router.get("/evaluation/confusion-pairs", response_model=list[ConfusionPairItem])
+def confusion_pairs(
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    return get_confusion_pairs(db=db, limit=limit)
