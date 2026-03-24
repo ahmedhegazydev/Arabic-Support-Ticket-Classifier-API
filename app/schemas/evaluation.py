@@ -29,3 +29,20 @@ class CategoryEvaluationOut(BaseModel):
     matched_predictions: int
     corrected_predictions: int
     agreement_rate: float
+
+
+class VersionMetricsOut(BaseModel):
+    model_version: str
+    total_finalized: int
+    matched_predictions: int
+    corrected_predictions: int
+    agreement_rate: float
+
+
+class VersionComparisonOut(BaseModel):
+    baseline: VersionMetricsOut
+    candidate: VersionMetricsOut
+    agreement_rate_delta: float
+    matched_predictions_delta: int
+    corrected_predictions_delta: int
+    improved: bool

@@ -293,3 +293,40 @@ def get_model_versions(db: Session) -> list[str]:
 
     rows = db.execute(stmt).all()
     return [row.model_version for row in rows]
+
+
+def compare_model_versions(
+    db: Session,
+    baseline_version: str,
+    candidate_version: str,
+) -> dict:
+    baseline_metrics = get_evaluation_metrics(db, model_version=baseline_version)
+    candidate_metrics = get_evaluation_metrics(db, model_version=candidate_version)
+
+    agreement_rate_delta = round(
+        candidate_metrics["agreement_rate"] - baseline_metrics["agreement_rate"],
+        4,
+    )
+
+    matched_predictions_delta = (
+        candidate_metrics["matched_predictions"] - baseline_metrics["matched_predictions"]
+    )
+
+    corrected_predictions_delta = (
+        candidate_metrics["corrected_predictions"] - baseline_metrics["corrected_predictions"]
+    )
+
+    return {
+        "baseline": {
+            "model_version": baseline_version,
+            **baseline_metrics,
+        },
+        "candidate": {
+            "model_version": candidate_version,
+            **candidate_metrics,
+        },
+        "agreement_rate_delta": agreement_rate_delta,
+        "matched_predictions_delta": matched_predictions_delta,
+        "corrected_predictions_delta": corrected_predictions_delta,
+        "improved": agreement_rate_delta > 0,
+    }

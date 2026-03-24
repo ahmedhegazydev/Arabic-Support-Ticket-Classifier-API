@@ -31,13 +31,16 @@ from app.repositories.ticket_repository import (
     get_evaluation_by_category,
     get_confusion_pairs,
      get_confusion_pair_examples,
-     get_model_versions
+     get_model_versions, 
+     compare_model_versions
 )
 
 from app.schemas.evaluation import (
     EvaluationMetricsOut,
     FinalizedPredictionOut,
-    CategoryEvaluationOut
+    CategoryEvaluationOut, 
+    VersionComparisonOut, 
+
 )
 
 
@@ -178,3 +181,16 @@ def confusion_pair_examples(
 @router.get("/evaluation/model-versions", response_model=list[str])
 def evaluation_model_versions(db: Session = Depends(get_db)):
     return get_model_versions(db)
+
+
+@router.get("/evaluation/compare", response_model=VersionComparisonOut)
+def evaluation_compare(
+    baseline_version: str = Query(...),
+    candidate_version: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    return compare_model_versions(
+        db=db,
+        baseline_version=baseline_version,
+        candidate_version=candidate_version,
+    )

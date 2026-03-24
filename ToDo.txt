@@ -56,3 +56,36 @@ values
 
 /evaluation/confusion-pairs/examples?predicted_category=billing&final_category=refund
 /evaluation/confusion-pairs/examples?predicted_category=login_issue&final_category=account_access
+
+
+insert into ticket_predictions (
+    request_id,
+    original_text,
+    normalized_text,
+    predicted_category,
+    final_category,
+    confidence,
+    priority,
+    needs_human_review,
+    latency_ms,
+    model_version,
+    review_status,
+    reviewed_at
+)
+values
+-- v2 improved on refund-related cases
+('test-v2-001', 'أريد استرداد المبلغ المدفوع', 'اريد استرداد المبلغ المدفوع', 'refund', 'refund', 0.92, 'medium', false, 118.4, 'v2', 'reviewed', now()),
+('test-v2-002', 'تم خصم المبلغ وأريد استرجاعه', 'تم خصم المبلغ واريد استرجاعه', 'refund', 'refund', 0.90, 'high', false, 121.7, 'v2', 'reviewed', now()),
+('test-v2-003', 'أريد إلغاء الطلب واسترداد المال', 'اريد الغاء الطلب واسترداد المال', 'refund', 'refund', 0.88, 'high', false, 116.2, 'v2', 'reviewed', now()),
+-- v2 still struggles a bit with account access
+('test-v2-004', 'لا أستطيع الدخول إلى حسابي', 'لا استطيع الدخول الى حسابي', 'login_issue', 'account_access', 0.70, 'high', true, 129.3, 'v2', 'reviewed', now()),
+('test-v2-005', 'الحساب مقفل بعد عدة محاولات', 'الحساب مقفل بعد عدة محاولات', 'account_access', 'account_access', 0.86, 'high', false, 122.5, 'v2', 'reviewed', now()),
+('test-v2-006', 'نسيت كلمة المرور ولا يمكنني الوصول للحساب', 'نسيت كلمة المرور ولا يمكنني الوصول للحساب', 'account_access', 'account_access', 0.84, 'medium', false, 125.8, 'v2', 'reviewed', now()),
+-- one remaining issue in support/billing border
+('test-v2-007', 'الخدمة لا تعمل بعد تجديد الاشتراك', 'الخدمة لا تعمل بعد تجديد الاشتراك', 'technical_support', 'billing', 0.66, 'medium', true, 143.9, 'v2', 'reviewed', now()),
+('test-v2-008', 'تم الدفع لكن الباقة لم تتفعل', 'تم الدفع لكن الباقة لم تتفعل', 'billing', 'billing', 0.83, 'high', false, 132.1, 'v2', 'reviewed', now()),
+-- correct predictions
+('test-v2-009', 'أريد تحديث بيانات الدفع', 'اريد تحديث بيانات الدفع', 'billing', 'billing', 0.91, 'low', false, 101.2, 'v2', 'reviewed', now()),
+('test-v2-010', 'التطبيق ينهار عند فتح الصفحة', 'التطبيق ينهار عند فتح الصفحة', 'technical_support', 'technical_support', 0.93, 'high', false, 107.4, 'v2', 'reviewed', now()),
+('test-v2-011', 'لا أستطيع تسجيل الدخول', 'لا استطيع تسجيل الدخول', 'login_issue', 'login_issue', 0.87, 'high', false, 109.6, 'v2', 'reviewed', now()),
+('test-v2-012', 'أريد استرجاع المبلغ بسبب إلغاء الطلب', 'اريد استرجاع المبلغ بسبب الغاء الطلب', 'refund', 'refund', 0.94, 'medium', false, 112.8, 'v2', 'reviewed', now());
