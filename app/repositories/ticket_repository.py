@@ -99,7 +99,10 @@ def get_finalized_predictions(
     return list(db.scalars(stmt).all())
 
 
-def get_evaluation_metrics(db: Session) -> dict:
+def get_evaluation_metrics(
+    db: Session,
+    model_version: str | None = None,
+) -> dict:
     total_stmt = (
         select(func.count())
         .select_from(TicketPrediction)
@@ -120,6 +123,11 @@ def get_evaluation_metrics(db: Session) -> dict:
         .where(TicketPrediction.predicted_category != TicketPrediction.final_category)
     )
 
+    if model_version:
+        total_stmt = total_stmt.where(TicketPrediction.model_version == model_version)
+        matched_stmt = matched_stmt.where(TicketPrediction.model_version == model_version)
+        corrected_stmt = corrected_stmt.where(TicketPrediction.model_version == model_version)
+
     total_finalized = db.scalar(total_stmt) or 0
     matched_predictions = db.scalar(matched_stmt) or 0
     corrected_predictions = db.scalar(corrected_stmt) or 0
@@ -137,7 +145,10 @@ def get_evaluation_metrics(db: Session) -> dict:
         "agreement_rate": round(agreement_rate, 4),
     }
 
-def get_evaluation_by_category(db: Session) -> list[dict]:
+def get_evaluation_by_category(
+    db: Session,
+    model_version: str | None = None,
+) -> list[dict]:
     stmt = (
         select(
             TicketPrediction.predicted_category.label("predicted_category"),
@@ -150,7 +161,13 @@ def get_evaluation_by_category(db: Session) -> list[dict]:
             ).label("corrected_predictions"),
         )
         .where(TicketPrediction.final_category.is_not(None))
-        .group_by(TicketPrediction.predicted_category)
+    )
+
+    if model_version:
+        stmt = stmt.where(TicketPrediction.model_version == model_version)
+
+    stmt = (
+        stmt.group_by(TicketPrediction.predicted_category)
         .order_by(func.count().desc())
     )
 
@@ -180,7 +197,11 @@ def get_evaluation_by_category(db: Session) -> list[dict]:
 
     return results
 
-def get_confusion_pairs(db: Session, limit: int = 20):
+def get_confusion_pairs(
+    db: Session,
+    limit: int = 20,
+    model_version: str | None = None,
+):
     stmt = (
         select(
             TicketPrediction.predicted_category.label("predicted_category"),
@@ -189,7 +210,13 @@ def get_confusion_pairs(db: Session, limit: int = 20):
         )
         .where(TicketPrediction.final_category.is_not(None))
         .where(TicketPrediction.predicted_category != TicketPrediction.final_category)
-        .group_by(
+    )
+
+    if model_version:
+        stmt = stmt.where(TicketPrediction.model_version == model_version)
+
+    stmt = (
+        stmt.group_by(
             TicketPrediction.predicted_category,
             TicketPrediction.final_category,
         )
@@ -214,6 +241,7 @@ def get_confusion_pair_examples(
     predicted_category: str,
     final_category: str,
     limit: int = 20,
+    model_version: str | None = None,
 ):
     stmt = (
         select(
@@ -224,11 +252,18 @@ def get_confusion_pair_examples(
             TicketPrediction.confidence,
             TicketPrediction.review_status,
             TicketPrediction.reviewed_at,
+            TicketPrediction.model_version,
         )
         .where(TicketPrediction.final_category.is_not(None))
         .where(TicketPrediction.predicted_category == predicted_category)
         .where(TicketPrediction.final_category == final_category)
-        .order_by(TicketPrediction.reviewed_at.desc(), TicketPrediction.created_at.desc())
+    )
+
+    if model_version:
+        stmt = stmt.where(TicketPrediction.model_version == model_version)
+
+    stmt = (
+        stmt.order_by(TicketPrediction.reviewed_at.desc(), TicketPrediction.created_at.desc())
         .limit(limit)
     )
 
@@ -243,6 +278,18 @@ def get_confusion_pair_examples(
             "confidence": row.confidence,
             "review_status": row.review_status,
             "reviewed_at": row.reviewed_at,
+            "model_version": row.model_version,
         }
         for row in rows
     ]
+
+
+def get_model_versions(db: Session) -> list[str]:
+    stmt = (
+        select(TicketPrediction.model_version)
+        .distinct()
+        .order_by(TicketPrediction.model_version.desc())
+    )
+
+    rows = db.execute(stmt).all()
+    return [row.model_version for row in rows]

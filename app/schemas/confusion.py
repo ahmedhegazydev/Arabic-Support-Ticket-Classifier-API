@@ -15,3 +15,4 @@ class ConfusionPairExampleItem(BaseModel):
     confidence: float
     review_status: str
     reviewed_at: datetime | None
+    model_version: str

@@ -52,3 +52,7 @@ values
 ('test-010', 'التطبيق ينهار عند فتح الصفحة', 'التطبيق ينهار عند فتح الصفحة', 'technical_support', 'technical_support', 0.91, 'high', false, 110.2, 'v1', 'reviewed', now()),
 ('test-011', 'لا أستطيع تسجيل الدخول', 'لا استطيع تسجيل الدخول', 'login_issue', 'login_issue', 0.84, 'high', false, 104.7, 'v1', 'reviewed', now()),
 ('test-012', 'أريد استرجاع المبلغ بسبب إلغاء الطلب', 'اريد استرجاع المبلغ بسبب الغاء الطلب', 'refund', 'refund', 0.89, 'medium', false, 115.9, 'v1', 'reviewed', now());
+
+
+/evaluation/confusion-pairs/examples?predicted_category=billing&final_category=refund
+/evaluation/confusion-pairs/examples?predicted_category=login_issue&final_category=account_access

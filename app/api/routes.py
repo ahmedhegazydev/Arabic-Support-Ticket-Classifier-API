@@ -31,6 +31,7 @@ from app.repositories.ticket_repository import (
     get_evaluation_by_category,
     get_confusion_pairs,
      get_confusion_pair_examples,
+     get_model_versions
 )
 
 from app.schemas.evaluation import (
@@ -128,17 +129,52 @@ def reviewed_dataset(
     return rows
 
 @router.get("/evaluation/metrics", response_model=EvaluationMetricsOut)
-def evaluation_metrics(db: Session = Depends(get_db)):
-    return get_evaluation_metrics(db)
+def evaluation_metrics(
+    model_version: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    return get_evaluation_metrics(db, model_version=model_version)
 
 
 @router.get("/evaluation/by-category", response_model=list[CategoryEvaluationOut])
-def evaluation_by_category(db: Session = Depends(get_db)):
-    return get_evaluation_by_category(db)
+def evaluation_by_category(
+    model_version: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    return get_evaluation_by_category(db, model_version=model_version)
 
 @router.get("/evaluation/confusion-pairs", response_model=list[ConfusionPairItem])
 def confusion_pairs(
     limit: int = Query(20, ge=1, le=100),
+    model_version: str | None = Query(None),
     db: Session = Depends(get_db),
 ):
-    return get_confusion_pairs(db=db, limit=limit)
+    return get_confusion_pairs(
+        db=db,
+        limit=limit,
+        model_version=model_version,
+    )
+
+    
+@router.get(
+    "/evaluation/confusion-pairs/examples",
+    response_model=list[ConfusionPairExampleItem],
+)
+def confusion_pair_examples(
+    predicted_category: str = Query(...),
+    final_category: str = Query(...),
+    limit: int = Query(20, ge=1, le=100),
+    model_version: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    return get_confusion_pair_examples(
+        db=db,
+        predicted_category=predicted_category,
+        final_category=final_category,
+        limit=limit,
+        model_version=model_version,
+    )
+
+@router.get("/evaluation/model-versions", response_model=list[str])
+def evaluation_model_versions(db: Session = Depends(get_db)):
+    return get_model_versions(db)
