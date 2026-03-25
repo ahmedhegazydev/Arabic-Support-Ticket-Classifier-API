@@ -82,3 +82,17 @@ class ThresholdSweepItemOut(BaseModel):
     corrected_below_threshold: int
     agreement_rate: float
     correction_rate: float
+
+
+
+
+class ReviewRecommendationOut(BaseModel):
+    request_id: str
+    predicted_category: str
+    confidence: float
+    needs_human_review: bool
+    review_status: str
+    model_version: str
+    threshold: float
+    recommended_action: str
+    reason: str

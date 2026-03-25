@@ -513,3 +513,50 @@ def get_threshold_sweep(
         )
 
     return results
+
+def get_review_recommendation(
+    db: Session,
+    request_id: str,
+    threshold: float = 0.80,
+) -> dict | None:
+    stmt = (
+        select(
+            TicketPrediction.request_id,
+            TicketPrediction.predicted_category,
+            TicketPrediction.confidence,
+            TicketPrediction.needs_human_review,
+            TicketPrediction.review_status,
+            TicketPrediction.model_version,
+        )
+        .where(TicketPrediction.request_id == request_id)
+    )
+
+    row = db.execute(stmt).one_or_none()
+
+    if row is None:
+        return None
+
+    if row.review_status in {"reviewed", "resolved"}:
+        recommended_action = "already_reviewed"
+        reason = "ticket_already_reviewed"
+    elif row.needs_human_review:
+        recommended_action = "send_to_review"
+        reason = "flagged_by_existing_review_rule"
+    elif row.confidence < threshold:
+        recommended_action = "send_to_review"
+        reason = "confidence_below_threshold"
+    else:
+        recommended_action = "auto_accept"
+        reason = "confidence_above_threshold"
+
+    return {
+        "request_id": row.request_id,
+        "predicted_category": row.predicted_category,
+        "confidence": row.confidence,
+        "needs_human_review": row.needs_human_review,
+        "review_status": row.review_status,
+        "model_version": row.model_version,
+        "threshold": round(threshold, 2),
+        "recommended_action": recommended_action,
+        "reason": reason,
+    }

@@ -35,7 +35,8 @@ from app.repositories.ticket_repository import (
      compare_model_versions, 
      get_low_confidence_tickets,
      get_low_confidence_summary, 
-     get_threshold_sweep
+     get_threshold_sweep,
+     get_review_recommendation
      
 )
 
@@ -46,10 +47,13 @@ from app.schemas.evaluation import (
     VersionComparisonOut, 
     LowConfidenceTicketItem, 
     LowConfidenceSummaryOut, 
-    ThresholdSweepItemOut
+    ThresholdSweepItemOut,
+    ReviewRecommendationOut
 
 )
 
+from app.schemas.llm import LLMSecondOpinionOut
+from app.services.llm_service import get_llm_second_opinion
 
 router = APIRouter()
 
@@ -250,3 +254,45 @@ def threshold_sweep(
         db=db,
         model_version=model_version,
     )
+
+
+@router.get(
+    "/evaluation/review-recommendation/{request_id}",
+    response_model=ReviewRecommendationOut,
+)
+def review_recommendation(
+    request_id: str,
+    threshold: float = Query(0.80, gt=0.0, lt=1.0),
+    db: Session = Depends(get_db),
+):
+    result = get_review_recommendation(
+        db=db,
+        request_id=request_id,
+        threshold=threshold,
+    )
+
+    if result is None:
+        raise HTTPException(status_code=404, detail="Ticket prediction not found")
+
+    return result
+
+
+@router.get(
+    "/postprocess/llm-second-opinion/{request_id}",
+    response_model=LLMSecondOpinionOut,
+)
+def llm_second_opinion(
+    request_id: str,
+    threshold: float = Query(0.80, gt=0.0, lt=1.0),
+    db: Session = Depends(get_db),
+):
+    result = get_llm_second_opinion(
+        db=db,
+        request_id=request_id,
+        threshold=threshold,
+    )
+
+    if result is None:
+        raise HTTPException(status_code=404, detail="Ticket prediction not found")
+
+    return result

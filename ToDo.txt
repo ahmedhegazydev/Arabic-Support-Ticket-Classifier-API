@@ -94,3 +94,10 @@ values
 /evaluation/low-confidence-tickets
 /evaluation/low-confidence-tickets?model_version=v1
 /evaluation/low-confidence-tickets?model_version=v1&finalized_only=true
+
+
+
+/evaluation/review-recommendation/test-v2-004?threshold=0.80
+ /evaluation/review-recommendation/test-v2-010?threshold=0.80
+ /evaluation/review-recommendation/live-test-001?threshold=0.80
+/evaluation/review-recommendation/live-test-002?threshold=0.80
