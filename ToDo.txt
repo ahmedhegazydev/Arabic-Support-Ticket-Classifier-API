@@ -89,3 +89,8 @@ values
 ('test-v2-010', 'التطبيق ينهار عند فتح الصفحة', 'التطبيق ينهار عند فتح الصفحة', 'technical_support', 'technical_support', 0.93, 'high', false, 107.4, 'v2', 'reviewed', now()),
 ('test-v2-011', 'لا أستطيع تسجيل الدخول', 'لا استطيع تسجيل الدخول', 'login_issue', 'login_issue', 0.87, 'high', false, 109.6, 'v2', 'reviewed', now()),
 ('test-v2-012', 'أريد استرجاع المبلغ بسبب إلغاء الطلب', 'اريد استرجاع المبلغ بسبب الغاء الطلب', 'refund', 'refund', 0.94, 'medium', false, 112.8, 'v2', 'reviewed', now());
+
+
+/evaluation/low-confidence-tickets
+/evaluation/low-confidence-tickets?model_version=v1
+/evaluation/low-confidence-tickets?model_version=v1&finalized_only=true

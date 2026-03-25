@@ -330,3 +330,186 @@ def compare_model_versions(
         "corrected_predictions_delta": corrected_predictions_delta,
         "improved": agreement_rate_delta > 0,
     }
+
+def get_low_confidence_tickets(
+    db: Session,
+    threshold: float = 0.80,
+    limit: int = 20,
+    model_version: str | None = None,
+    finalized_only: bool = False,
+) -> list[dict]:
+    stmt = (
+        select(
+            TicketPrediction.request_id,
+            TicketPrediction.original_text,
+            TicketPrediction.predicted_category,
+            TicketPrediction.final_category,
+            TicketPrediction.confidence,
+            TicketPrediction.needs_human_review,
+            TicketPrediction.review_status,
+            TicketPrediction.model_version,
+            TicketPrediction.created_at,
+            TicketPrediction.reviewed_at,
+        )
+        .where(TicketPrediction.confidence < threshold)
+    )
+
+    if model_version:
+        stmt = stmt.where(TicketPrediction.model_version == model_version)
+
+    if finalized_only:
+        stmt = stmt.where(TicketPrediction.final_category.is_not(None))
+
+    stmt = (
+        stmt.order_by(TicketPrediction.confidence.asc(), TicketPrediction.created_at.desc())
+        .limit(limit)
+    )
+
+    rows = db.execute(stmt).all()
+
+    return [
+        {
+            "request_id": row.request_id,
+            "original_text": row.original_text,
+            "predicted_category": row.predicted_category,
+            "final_category": row.final_category,
+            "confidence": row.confidence,
+            "needs_human_review": row.needs_human_review,
+            "review_status": row.review_status,
+            "model_version": row.model_version,
+            "created_at": row.created_at,
+            "reviewed_at": row.reviewed_at,
+        }
+        for row in rows
+    ]
+
+
+def get_low_confidence_summary(
+    db: Session,
+    threshold: float = 0.80,
+    model_version: str | None = None,
+) -> dict:
+    base_stmt = (
+        select(
+            func.count().label("total_low_confidence"),
+            func.sum(
+                (TicketPrediction.final_category.is_not(None)).cast(Integer)
+            ).label("finalized_low_confidence"),
+            func.sum(
+                (
+                    (TicketPrediction.final_category.is_not(None)) &
+                    (TicketPrediction.predicted_category == TicketPrediction.final_category)
+                ).cast(Integer)
+            ).label("matched_low_confidence"),
+            func.sum(
+                (
+                    (TicketPrediction.final_category.is_not(None)) &
+                    (TicketPrediction.predicted_category != TicketPrediction.final_category)
+                ).cast(Integer)
+            ).label("corrected_low_confidence"),
+        )
+        .where(TicketPrediction.confidence < threshold)
+    )
+
+    if model_version:
+        base_stmt = base_stmt.where(TicketPrediction.model_version == model_version)
+
+    row = db.execute(base_stmt).one()
+
+    total_low_confidence = row.total_low_confidence or 0
+    finalized_low_confidence = row.finalized_low_confidence or 0
+    matched_low_confidence = row.matched_low_confidence or 0
+    corrected_low_confidence = row.corrected_low_confidence or 0
+
+    agreement_rate = (
+        matched_low_confidence / finalized_low_confidence
+        if finalized_low_confidence > 0
+        else 0.0
+    )
+
+    correction_rate = (
+        corrected_low_confidence / finalized_low_confidence
+        if finalized_low_confidence > 0
+        else 0.0
+    )
+
+    return {
+        "threshold": threshold,
+        "model_version": model_version,
+        "total_low_confidence": total_low_confidence,
+        "finalized_low_confidence": finalized_low_confidence,
+        "matched_low_confidence": matched_low_confidence,
+        "corrected_low_confidence": corrected_low_confidence,
+        "agreement_rate": round(agreement_rate, 4),
+        "correction_rate": round(correction_rate, 4),
+    }
+
+
+def get_threshold_sweep(
+    db: Session,
+    model_version: str | None = None,
+    thresholds: list[float] | None = None,
+) -> list[dict]:
+    if thresholds is None:
+        thresholds = [0.60, 0.70, 0.80, 0.90]
+
+    results = []
+
+    for threshold in thresholds:
+        stmt = (
+            select(
+                func.count().label("total_below_threshold"),
+                func.sum(
+                    (TicketPrediction.final_category.is_not(None)).cast(Integer)
+                ).label("finalized_below_threshold"),
+                func.sum(
+                    (
+                        (TicketPrediction.final_category.is_not(None)) &
+                        (TicketPrediction.predicted_category == TicketPrediction.final_category)
+                    ).cast(Integer)
+                ).label("matched_below_threshold"),
+                func.sum(
+                    (
+                        (TicketPrediction.final_category.is_not(None)) &
+                        (TicketPrediction.predicted_category != TicketPrediction.final_category)
+                    ).cast(Integer)
+                ).label("corrected_below_threshold"),
+            )
+            .where(TicketPrediction.confidence < threshold)
+        )
+
+        if model_version:
+            stmt = stmt.where(TicketPrediction.model_version == model_version)
+
+        row = db.execute(stmt).one()
+
+        total_below_threshold = row.total_below_threshold or 0
+        finalized_below_threshold = row.finalized_below_threshold or 0
+        matched_below_threshold = row.matched_below_threshold or 0
+        corrected_below_threshold = row.corrected_below_threshold or 0
+
+        agreement_rate = (
+            matched_below_threshold / finalized_below_threshold
+            if finalized_below_threshold > 0
+            else 0.0
+        )
+
+        correction_rate = (
+            corrected_below_threshold / finalized_below_threshold
+            if finalized_below_threshold > 0
+            else 0.0
+        )
+
+        results.append(
+            {
+                "threshold": round(threshold, 2),
+                "total_below_threshold": total_below_threshold,
+                "finalized_below_threshold": finalized_below_threshold,
+                "matched_below_threshold": matched_below_threshold,
+                "corrected_below_threshold": corrected_below_threshold,
+                "agreement_rate": round(agreement_rate, 4),
+                "correction_rate": round(correction_rate, 4),
+            }
+        )
+
+    return results

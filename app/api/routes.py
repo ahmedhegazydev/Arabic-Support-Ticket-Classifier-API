@@ -32,7 +32,11 @@ from app.repositories.ticket_repository import (
     get_confusion_pairs,
      get_confusion_pair_examples,
      get_model_versions, 
-     compare_model_versions
+     compare_model_versions, 
+     get_low_confidence_tickets,
+     get_low_confidence_summary, 
+     get_threshold_sweep
+     
 )
 
 from app.schemas.evaluation import (
@@ -40,6 +44,9 @@ from app.schemas.evaluation import (
     FinalizedPredictionOut,
     CategoryEvaluationOut, 
     VersionComparisonOut, 
+    LowConfidenceTicketItem, 
+    LowConfidenceSummaryOut, 
+    ThresholdSweepItemOut
 
 )
 
@@ -193,4 +200,53 @@ def evaluation_compare(
         db=db,
         baseline_version=baseline_version,
         candidate_version=candidate_version,
+    )
+
+
+@router.get(
+    "/evaluation/low-confidence-tickets",
+    response_model=list[LowConfidenceTicketItem],
+)
+def low_confidence_tickets(
+    threshold: float = Query(0.80, gt=0.0, lt=1.0),
+    limit: int = Query(20, ge=1, le=100),
+    # model_version: str | None = Query(None),
+    model_version: str | None = Query("v1"),
+    finalized_only: bool = Query(False),
+    db: Session = Depends(get_db),
+):
+    return get_low_confidence_tickets(
+        db=db,
+        threshold=threshold,
+        limit=limit,
+        model_version=model_version,
+        finalized_only=finalized_only,
+    )
+
+@router.get(
+    "/evaluation/low-confidence-summary",
+    response_model=LowConfidenceSummaryOut,
+)
+def low_confidence_summary(
+    threshold: float = Query(0.80, gt=0.0, lt=1.0),
+    model_version: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    return get_low_confidence_summary(
+        db=db,
+        threshold=threshold,
+        model_version=model_version,
+    )
+
+@router.get(
+    "/evaluation/threshold-sweep",
+    response_model=list[ThresholdSweepItemOut],
+)
+def threshold_sweep(
+    model_version: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    return get_threshold_sweep(
+        db=db,
+        model_version=model_version,
     )
