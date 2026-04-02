@@ -10,3 +10,8 @@ class LLMSecondOpinionOut(BaseModel):
     llm_suggested_category: str | None
     llm_reasoning: str | None
     recommended_final_action: str
+
+
+class LLMParsedResponse(BaseModel):
+    suggested_category: str
+    reasoning: str

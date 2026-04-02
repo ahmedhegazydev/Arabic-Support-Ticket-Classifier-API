@@ -1,7 +1,8 @@
 عاجل لا أستطيع الدخول إلى الحساب
 مشكلة تسجيل دخول
 354d3022-ff31-4b1d-abd5-e6d4befd63dd
-
+==========================================================================
+==========================================================================
 {
   "reviewed_category": "مشكلة تسجيل دخول",
   "reviewer_name": "Ahmed",
@@ -22,6 +23,8 @@
   }
 ]
 
+==========================================================================
+==========================================================================
 insert into ticket_predictions (
     request_id,
     original_text,
@@ -53,10 +56,12 @@ values
 ('test-011', 'لا أستطيع تسجيل الدخول', 'لا استطيع تسجيل الدخول', 'login_issue', 'login_issue', 0.84, 'high', false, 104.7, 'v1', 'reviewed', now()),
 ('test-012', 'أريد استرجاع المبلغ بسبب إلغاء الطلب', 'اريد استرجاع المبلغ بسبب الغاء الطلب', 'refund', 'refund', 0.89, 'medium', false, 115.9, 'v1', 'reviewed', now());
 
-
+==========================================================================
+==========================================================================
 /evaluation/confusion-pairs/examples?predicted_category=billing&final_category=refund
 /evaluation/confusion-pairs/examples?predicted_category=login_issue&final_category=account_access
-
+==========================================================================
+==========================================================================
 
 insert into ticket_predictions (
     request_id,
@@ -101,3 +106,35 @@ values
  /evaluation/review-recommendation/test-v2-010?threshold=0.80
  /evaluation/review-recommendation/live-test-001?threshold=0.80
 /evaluation/review-recommendation/live-test-002?threshold=0.80
+==========================================================================
+==========================================================================
+
+You are assisting an Arabic support ticket classification system.
+
+Allowed categories:
+- billing
+- refund
+- login_issue
+- account_access
+- technical_support
+
+Ticket text:
+"{original_text}"
+
+Baseline predicted category:
+"{predicted_category}"
+
+Baseline confidence:
+{confidence}
+
+Return:
+1. best category
+2. short reasoning
+
+==========================================================================
+==========================================================================
+
+/postprocess/llm-second-opinion/not-found-123?threshold=0.80
+/postprocess/llm-second-opinion/live-test-002?threshold=0.80
+/postprocess/llm-second-opinion/live-test-001?threshold=0.80
+/postprocess/llm-second-opinion/llm-test-boundary-001?threshold=0.80
